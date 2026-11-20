@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+<title>BazarCalc — Costos reales y ganancia por artículo</title>
+<style>
+:root{
+  --bg:#f5f5f7;
+  --card:#ffffff;
+  --card-2:#fbfbfd;
+  --text:#1d1d1f;
+  --text-2:#6e6e73;
+  --text-3:#a1a1a6;
+  --line:rgba(0,0,0,.08);
+  --fill:rgba(120,120,128,.12);
+  --blue:#0071e3;
+  --blue-hover:#0077ed;
+  --green:#1d9a4b;
+  --green-bg:rgba(52,199,89,.14);
+  --orange:#c77700;
+  --orange-bg:rgba(255,159,10,.16);
+  --red:#d70015;
+  --red-bg:rgba(255,59,48,.13);
+  --grey-bg:rgba(120,120,128,.12);
+  --shadow:0 2px 12px rgba(0,0,0,.04),0 12px 40px -12px rgba(0,0,0,.10);
+  --nav:rgba(245,245,247,.72);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue","Segoe UI",Roboto,Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#000000;
+    --card:#1c1c1e;
+    --card-2:#161618;
+    --text:#f5f5f7;
+    --text-2:#a1a1a6;
+    --text-3:#6e6e73;
+    --line:rgba(255,255,255,.10);
+    --fill:rgba(120,120,128,.24);
+    --blue:#2997ff;
+    --blue-hover:#4aa8ff;
+    --green:#30d158;
+    --green-bg:rgba(48,209,88,.16);
+    --orange:#ffb340;
+    --orange-bg:rgba(255,159,10,.18);
+    --red:#ff6961;
+    --red-bg:rgba(255,69,58,.18);
+    --shadow:0 0 0 1px rgba(255,255,255,.04);
+    --nav:rgba(0,0,0,.72);
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--font);background:var(--bg);color:var(--text);
+  line-height:1.47;letter-spacing:-.011em;min-height:100vh;
+  display:flex;flex-direction:column;-webkit-font-smoothing:antialiased;
+}
+.tab{font-variant-numeric:tabular-nums}
+
+/* ---------- Navegación ---------- */
+nav{
+  position:sticky;top:0;z-index:50;height:52px;
+  background:var(--nav);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:1px solid var(--line);
+}
+.nav-in{max-width:1024px;height:100%;margin:0 auto;padding:0 22px;display:flex;align-items:center;justify-content:space-between}
+.brand{font-size:1.06rem;font-weight:600;letter-spacing:-.02em}
+.link-btn{
+  font:inherit;font-size:.9rem;color:var(--blue);background:none;border:none;cursor:pointer;
+  padding:6px 4px;border-radius:8px;transition:opacity .15s;
+}
+.link-btn:hover{opacity:.7}
+.link-btn:focus-visible,.pill-btn:focus-visible{outline:3px solid color-mix(in srgb,var(--blue) 40%,transparent);outline-offset:2px}
+
+/* ---------- Encabezado ---------- */
+.hero{max-width:1024px;width:100%;margin:0 auto;padding:64px 22px 36px;text-align:center}
+.hero .eyebrow{font-size:1.05rem;font-weight:600;color:var(--orange);margin-bottom:6px}
+.hero h1{
+  font-size:clamp(2.3rem,6.4vw,4rem);line-height:1.05;font-weight:700;letter-spacing:-.04em;
+}
+.hero p{
+  margin:18px auto 0;max-width:34em;font-size:clamp(1.05rem,2.3vw,1.3rem);
+  line-height:1.38;color:var(--text-2);font-weight:400;letter-spacing:-.015em;
+}
+
+/* ---------- Layout ---------- */
+main{max-width:1024px;width:100%;margin:0 auto;padding:8px 22px 72px;flex:1}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.92fr);gap:24px;align-items:start}
+@media(max-width:860px){.grid{grid-template-columns:1fr}.sticky{position:static!important}}
+
+.section-title{
+  font-size:.8rem;font-weight:400;text-transform:uppercase;letter-spacing:.02em;color:var(--text-2);
+  padding:0 16px 8px;
+}
+
+/* ---------- Lista agrupada estilo iOS ---------- */
+.group{background:var(--card);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:26px}
+.row{
+  display:flex;align-items:center;gap:14px;padding:12px 18px;min-height:62px;position:relative;
+  cursor:text;transition:background .15s;
+}
+.row+.row::before{content:"";position:absolute;top:0;left:18px;right:0;height:1px;background:var(--line)}
+.row:hover{background:var(--card-2)}
+.row:focus-within{background:var(--card-2)}
+.row .txt{flex:1;min-width:0}
+.row .name{font-size:1rem;font-weight:500;display:block}
+.row .hint{font-size:.8rem;color:var(--text-2);display:block;margin-top:1px}
+.field{display:flex;align-items:baseline;justify-content:flex-end;gap:4px;flex:0 0 42%;max-width:190px}
+.field .unit{color:var(--text-3);font-size:1.05rem;font-weight:500}
+.field input{
+  width:100%;min-width:0;border:none;outline:none;background:transparent;text-align:right;
+  font:inherit;font-size:1.2rem;font-weight:500;color:var(--text);letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;-moz-appearance:textfield;caret-color:var(--blue);
+}
+.field input::placeholder{color:var(--text-3);opacity:1}
+.field input::-webkit-outer-spin-button,.field input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.field.suffix{flex-direction:row-reverse;justify-content:flex-start}
+.field.suffix input{text-align:right}
+.row.big{min-height:84px}
+.row.big .name{font-size:1.1rem;font-weight:600}
+.row.big .field input{font-size:1.8rem;font-weight:600;letter-spacing:-.035em}
+.row.big .field .unit{font-size:1.5rem}
+.row.big .field{max-width:230px}
+
+/* ---------- Resultados ---------- */
+.sticky{position:sticky;top:76px}
+.result{background:var(--card);border-radius:22px;box-shadow:var(--shadow);padding:28px 24px 24px}
+.result-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.result-head h2{font-size:1.05rem;font-weight:600;letter-spacing:-.02em}
+.badge{
+  font-size:.74rem;font-weight:600;padding:4px 11px;border-radius:999px;
+  background:var(--grey-bg);color:var(--text-2);transition:background .25s,color .25s;
+}
+
+.hero-num{text-align:center;padding:22px 0 8px}
+.hero-num .lbl{font-size:.82rem;color:var(--text-2);font-weight:500}
+.hero-num .amount{
+  font-size:clamp(2.8rem,8vw,3.8rem);font-weight:700;letter-spacing:-.045em;line-height:1.05;
+  margin:4px 0 2px;color:var(--text-3);transition:color .25s;
+}
+.hero-num .margin{font-size:.95rem;color:var(--text-2)}
+.hero-num .margin b{color:var(--text);font-weight:600}
+
+.meter{height:6px;border-radius:99px;background:var(--fill);overflow:hidden;margin:18px 4px 4px}
+.meter i{display:block;height:100%;width:0;border-radius:99px;background:var(--text-3);transition:width .4s cubic-bezier(.4,0,.2,1),background .25s}
+
+.lines{margin-top:22px}
+.line{display:flex;justify-content:space-between;gap:12px;padding:11px 0;font-size:.94rem;border-top:1px solid var(--line)}
+.line span:first-child{color:var(--text-2)}
+.line .v{font-weight:500}
+.line.total{font-weight:600;font-size:1.02rem;padding-top:13px}
+.line.total span:first-child{color:var(--text)}
+
+.split{margin-top:20px}
+.split-t{font-size:.8rem;color:var(--text-2);margin-bottom:9px;font-weight:500}
+.split-bar{display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--fill);gap:2px}
+.split-bar i{display:block;height:100%;transition:width .4s cubic-bezier(.4,0,.2,1)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:11px;font-size:.75rem;color:var(--text-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend s{width:8px;height:8px;border-radius:50%;display:inline-block;text-decoration:none}
+
+.note{
+  margin-top:20px;padding:13px 16px;border-radius:14px;font-size:.9rem;font-weight:500;text-align:center;
+  background:var(--grey-bg);color:var(--text-2);transition:background .25s,color .25s;
+}
+
+footer{padding:28px 22px 36px;text-align:center;font-size:.78rem;color:var(--text-3);border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-in">
+    <span class="brand">BazarCalc</span>
+    <button type="button" class="link-btn" id="btnLimpiar">Limpiar campos</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="eyebrow">Libreta de costos y ganancias</div>
+  <h1>Cuánto ganas.<br>De verdad.</h1>
+  <p>Anota lo que te cuesta cada artículo y descubre al instante tu costo real y tu margen de ganancia.</p>
+</header>
+
+<main>
+  <div class="grid">
+
+    <!-- Datos -->
+    <section aria-label="Datos del producto">
+
+      <div class="section-title">Venta</div>
+      <div class="group">
+        <label class="row big">
+          <span class="txt"><span class="name">Precio de venta</span><span class="hint">Lo que paga el cliente</span></span>
+          <span class="field"><span class="unit">$</span>
+            <input type="number" id="precioVenta" placeholder="0" min="0" step="any" inputmode="decimal"></span>
+        </label>
+      </div>
+
+      <div class="section-title">Lo que te cuesta</div>
+      <div class="group">
+        <label class="row">
+          <span class="txt"><span class="name">Costo del artículo</span><span class="hint">Lo que pagaste al proveedor</span></span>
+          <span class="field"><span class="unit">$</span>
+            <input type="number" id="costoProducto" placeholder="0" min="0" step="any" inputmode="decimal"></span>
+        </label>
+        <label class="row">
+          <span class="txt"><span class="name">Material de empaque</span><span class="hint">Bolsas, cajas, etiquetas, cinta</span></span>
+          <span class="field"><span class="unit">$</span>
+            <input type="number" id="costoEmpaque" placeholder="0" min="0" step="any" inputmode="decimal"></span>
+        </label>
+        <label class="row">
+          <span class="txt"><span class="name">Traslado o envío</span><span class="hint">Gasolina, pasajes o paquetería</span></span>
+          <span class="field"><span class="unit">$</span>
+            <input type="number" id="costoEnvio" placeholder="0" min="0" step="any" inputmode="decimal"></span>
+        </label>
+      </div>
+
+      <div class="section-title">Cobro y trabajo</div>
+      <div class="group">
+        <label class="row">
+          <span class="txt"><span class="name">Comisión por tarjeta o app</span><span class="hint">Porcentaje sobre el precio</span></span>
+          <span class="field suffix"><span class="unit">%</span>
+            <input type="number" id="porcentajeComision" placeholder="0" min="0" step="any" inputmode="decimal"></span>
+        </label>
+        <label class="row">
+          <span class="txt"><span class="name">Pago por tu tiempo</span><span class="hint">Mano de obra de preparar y entregar</span></span>
+          <span class="field"><span class="unit">$</span>
+            <input type="number" id="valorTiempo" placeholder="0" min="0" step="any" inputmode="decimal"></span>
+        </label>
+      </div>
+
+    </section>
+
+    <!-- Resultados -->
+    <aside class="sticky" aria-live="polite">
+      <div class="result">
+        <div class="result-head">
+          <h2>Desglose de cuentas</h2>
+          <span class="badge" id="badge">Sin datos</span>
+        </div>
+
+        <div class="hero-num">
+          <div class="lbl">Ganancia libre</div>
+          <div class="amount tab" id="resGanancia">$0.00</div>
+          <div class="margin">Margen real <b class="tab" id="resMargen">—</b></div>
+          <div class="meter"><i id="barraMargen"></i></div>
+        </div>
+
+        <div class="lines">
+          <div class="line"><span>Precio al público</span><span class="v tab" id="resPrecio">$0.00</span></div>
+          <div class="line"><span>Costo base del artículo</span><span class="v tab" id="resBase">$0.00</span></div>
+          <div class="line"><span>Empaque y traslado</span><span class="v tab" id="resExtras">$0.00</span></div>
+          <div class="line"><span>Comisión bancaria / app</span><span class="v tab" id="resComision">$0.00</span></div>
+          <div class="line"><span>Tu tiempo de trabajo</span><span class="v tab" id="resTiempo">$0.00</span></div>
+          <div class="line total"><span>Costo total real</span><span class="tab" id="resCostoTotal">$0.00</span></div>
+        </div>
+
+        <div class="split">
+          <div class="split-t">¿A dónde va tu precio?</div>
+          <div class="split-bar">
+            <i id="rpBase"   style="background:#1d1d1f"></i>
+            <i id="rpExtra"  style="background:#8e8e93"></i>
+            <i id="rpCom"    style="background:#ff9f0a"></i>
+            <i id="rpTiempo" style="background:#0a84ff"></i>
+            <i id="rpGan"    style="background:#30d158"></i>
+          </div>
+          <div class="legend">
+            <span><s style="background:#1d1d1f"></s>Artículo</span>
+            <span><s style="background:#8e8e93"></s>Empaque y traslado</span>
+            <span><s style="background:#ff9f0a"></s>Comisión</span>
+            <span><s style="background:#0a84ff"></s>Tu tiempo</span>
+            <span><s style="background:#30d158"></s>Ganancia</span>
+          </div>
+        </div>
+
+        <div class="note" id="cajaEstado">Escribe el precio de venta para empezar.</div>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer>BazarCalc · Hecho para vendedores de bazar y emprendedores.</footer>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const campos = ['precioVenta','costoProducto','costoEmpaque','costoEnvio','porcentajeComision','valorTiempo'].map($);
+const [inputPrecio, inputCosto, inputEmpaque, inputEnvio, inputComision, inputTiempo] = campos;
+
+const dinero = (n) => (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2);
+
+const estados = {
+  vacio:    { color:'var(--text-3)', bg:'var(--grey-bg)', txtColor:'var(--text-2)', badge:'Sin datos', texto:'Escribe el precio de venta para empezar.' },
+  perdida:  { color:'var(--red)',    bg:'var(--red-bg)',  txtColor:'var(--red)',    badge:'Pérdida',   texto:'Atención: estás perdiendo dinero en esta venta.' },
+  ajustado: { color:'var(--orange)', bg:'var(--orange-bg)',txtColor:'var(--orange)',badge:'Ajustado',  texto:'Margen ajustado: cualquier imprevisto reducirá tu ganancia.' },
+  sano:     { color:'var(--green)',  bg:'var(--green-bg)', txtColor:'var(--green)', badge:'Saludable', texto:'Margen saludable: el precio cubre bien todos tus gastos.' }
+};
+
+function aplicarEstado(e) {
+  $('resGanancia').style.color = e.color;
+  $('barraMargen').style.background = e.color;
+  const b = $('badge');  b.style.background = e.bg; b.style.color = e.txtColor; b.textContent = e.badge;
+  const n = $('cajaEstado'); n.style.background = e.bg; n.style.color = e.txtColor; n.textContent = e.texto;
+}
+
+function actualizarCuentas() {
+  const precio       = parseFloat(inputPrecio.value) || 0;
+  const costo        = parseFloat(inputCosto.value) || 0;
+  const empaque      = parseFloat(inputEmpaque.value) || 0;
+  const envio        = parseFloat(inputEnvio.value) || 0;
+  const porcComision = parseFloat(inputComision.value) || 0;
+  const tiempo       = parseFloat(inputTiempo.value) || 0;
+
+  const dineroComision = precio * (porcComision / 100);
+  const gastosExtras   = empaque + envio;
+  const costoTotal     = costo + gastosExtras + dineroComision + tiempo;
+  const gananciaNeta   = precio - costoTotal;
+  const margen         = precio > 0 ? (gananciaNeta / precio) * 100 : 0;
+
+  $('resPrecio').textContent     = dinero(precio);
+  $('resBase').textContent       = dinero(costo);
+  $('resExtras').textContent     = dinero(gastosExtras);
+  $('resComision').textContent   = dinero(dineroComision);
+  $('resTiempo').textContent     = dinero(tiempo);
+  $('resCostoTotal').textContent = dinero(costoTotal);
+  $('resGanancia').textContent   = dinero(gananciaNeta);
+  $('resMargen').textContent     = precio > 0 ? margen.toFixed(1) + '%' : '—';
+  $('barraMargen').style.width   = Math.max(0, Math.min(100, margen)) + '%';
+
+  const gan  = Math.max(0, gananciaNeta);
+  const suma = costo + gastosExtras + dineroComision + tiempo + gan;
+  const pct  = (v) => (suma > 0 ? (v / suma) * 100 : 0) + '%';
+  $('rpBase').style.width   = pct(costo);
+  $('rpExtra').style.width  = pct(gastosExtras);
+  $('rpCom').style.width    = pct(dineroComision);
+  $('rpTiempo').style.width = pct(tiempo);
+  $('rpGan').style.width    = pct(gan);
+
+  const hayDatos = campos.some((c) => c.value !== '' && parseFloat(c.value) > 0);
+  aplicarEstado(!hayDatos || (precio === 0 && costoTotal === 0) ? estados.vacio
+              : precio === 0 ? estados.vacio
+              : gananciaNeta < 0 ? estados.perdida
+              : margen < 20 ? estados.ajustado
+              : estados.sano);
+}
+
+campos.forEach((c) => c.addEventListener('input', actualizarCuentas));
+
+$('btnLimpiar').addEventListener('click', () => {
+  campos.forEach((c) => (c.value = ''));
+  actualizarCuentas();
+  inputPrecio.focus();
+});
+
+actualizarCuentas();
+</script>
+</body>
+</html>
